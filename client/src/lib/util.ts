@@ -107,7 +107,7 @@ export function themeVars(t: Theme): CSSProperties {
     '--text': tx,
     '--bio': t.colorDescripcion ? col(t.colorDescripcion, tx) : tx,
     '--on-primary': ratio(p, '#ffffff') >= ratio(p, '#111111') ? '#ffffff' : '#111111',
-    '--name': ratio(p, bg) >= 3 ? p : tx,
+    '--name': t.colorNombre ? col(t.colorNombre, tx) : ratio(p, bg) >= 3 ? p : tx,
     '--radius': radius
   } as CSSProperties;
 }

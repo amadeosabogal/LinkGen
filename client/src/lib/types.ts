@@ -19,6 +19,8 @@ export interface Theme {
   colorPrincipal: string;
   fondo: string;
   texto: string;
+  /** Color del nombre del negocio. Vacío = automático. */
+  colorNombre?: string;
   /** Color de la descripción corta. Vacío = usa el color de texto. */
   colorDescripcion?: string;
   estiloBoton: BtnStyle;

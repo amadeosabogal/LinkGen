@@ -144,6 +144,23 @@ function BgImageField({ value, onChange, notify }: {
   );
 }
 
+function OptionalColor({ label, hint, value, fallback, onChange }: {
+  label: string; hint: string; value: string | undefined; fallback: string; onChange: (v: string) => void;
+}) {
+  return (
+    <FieldBox label={label} hint={hint}>
+      <div className="flex items-center gap-2.5">
+        <input
+          type="color" aria-label={label} value={value || fallback} onChange={(e) => onChange(e.target.value)}
+          className="h-[38px] w-11 rounded-lg border border-slate-300 bg-white p-0.5"
+        />
+        <code className="font-mono text-[12.5px]">{value || 'Automático'}</code>
+        {value && <button type="button" className={btnGhost} onClick={() => onChange('')}>Restablecer</button>}
+      </div>
+    </FieldBox>
+  );
+}
+
 function LogoField({ logo, onChange, notify }: { logo: string; onChange: (v: string) => void; notify: (m: string) => void }) {
   const ref = useRef<HTMLInputElement>(null);
   return (
@@ -218,25 +235,16 @@ export function SecNegocio({ draft, edit, notify }: SectionProps) {
         label="Descripción corta" value={m.bio} max={120} placeholder="Ej: Spa de belleza y bienestar 🌿"
         onChange={(v) => setData((d) => ({ ...d, marca: { ...d.marca, bio: v } }))}
       />
-      <FieldBox label="Color de la descripción" hint="Si no eliges uno, usa el color de texto del diseño.">
-        <div className="flex items-center gap-2.5">
-          <input
-            type="color" aria-label="Color de la descripción"
-            value={draft.data.tema.colorDescripcion || draft.data.tema.texto}
-            onChange={(e) => setData((d) => ({ ...d, tema: { ...d.tema, colorDescripcion: e.target.value } }))}
-            className="h-[38px] w-11 rounded-lg border border-slate-300 bg-white p-0.5"
-          />
-          <code className="font-mono text-[12.5px]">{draft.data.tema.colorDescripcion || 'Automático'}</code>
-          {draft.data.tema.colorDescripcion && (
-            <button
-              type="button" className={btnGhost}
-              onClick={() => setData((d) => ({ ...d, tema: { ...d.tema, colorDescripcion: '' } }))}
-            >
-              Restablecer
-            </button>
-          )}
-        </div>
-      </FieldBox>
+      <OptionalColor
+        label="Color del nombre" hint="Si no eliges uno, se calcula solo a partir del color principal."
+        value={draft.data.tema.colorNombre} fallback={draft.data.tema.colorPrincipal}
+        onChange={(v) => setData((d) => ({ ...d, tema: { ...d.tema, colorNombre: v } }))}
+      />
+      <OptionalColor
+        label="Color de la descripción" hint="Si no eliges uno, usa el color de texto del diseño."
+        value={draft.data.tema.colorDescripcion} fallback={draft.data.tema.texto}
+        onChange={(v) => setData((d) => ({ ...d, tema: { ...d.tema, colorDescripcion: v } }))}
+      />
       <LogoField logo={m.logo} notify={notify} onChange={(v) => setData((d) => ({ ...d, marca: { ...d.marca, logo: v } }))} />
       <SlugField draft={draft} edit={edit} />
     </Card>
