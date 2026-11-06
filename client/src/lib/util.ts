@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { Btn, Theme } from './types';
+import type { Btn, Metal, Theme } from './types';
 import { hasIcon } from './icons';
 
 export const DEFAULT_THEME: Theme = {
@@ -139,3 +139,23 @@ export const linkFor = (slug: string) =>
   BASE_DOMAIN ? `https://${slug}.${BASE_DOMAIN}`
     : clean ? `${location.origin}/${slug}`
       : `${location.origin}/?c=${slug}`;
+
+// ── acabados metálicos ──
+export const METAL: Record<Metal, string> = {
+  oro: 'linear-gradient(135deg,#8a6a1c 0%,#f6e27a 22%,#c9962b 45%,#fff3b0 58%,#b07d1c 78%,#e9c85a 100%)',
+  plata: 'linear-gradient(135deg,#6b7078 0%,#f4f6f8 22%,#a7adb5 45%,#ffffff 58%,#8d939b 78%,#dfe3e8 100%)'
+};
+
+/** Fondo de un botón con borde metálico y reflejo; el relleno es el color principal. */
+export function metalButtonBg(m: Metal): string {
+  return `linear-gradient(165deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.07) 48%, rgba(255,255,255,0) 49%) padding-box, linear-gradient(var(--primary), var(--primary)) padding-box, ${METAL[m]} border-box`;
+}
+
+/** Estilo del anillo alrededor del logo, o null si no lleva borde. */
+export function logoRing(t: Theme): CSSProperties | null {
+  const kind = t.bordeLogo ?? 'ninguno';
+  if (kind === 'ninguno') return null;
+  const w = Math.min(14, Math.max(1, Math.round(Number(t.grosorBordeLogo) || 4)));
+  const background = kind === 'color' ? col(t.colorBordeLogo ?? '', col(t.colorPrincipal, DEFAULT_THEME.colorPrincipal)) : METAL[kind];
+  return { padding: w, background };
+}

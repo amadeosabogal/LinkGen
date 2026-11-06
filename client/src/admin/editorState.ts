@@ -36,7 +36,8 @@ export function hydrate(raw: SiteData): EditorData {
     marca: { nombre: raw.marca?.nombre ?? '', bio: raw.marca?.bio ?? '', logo: raw.marca?.logo ?? '' },
     tema: { ...DEFAULT_THEME, ...raw.tema },
     redes: { instagram: '', facebook: '', tiktok: '', youtube: '', web: '', maps: '', ...raw.redes },
-    botones: (raw.botones ?? []).map(hydrateBtn)
+    botones: (raw.botones ?? []).map(hydrateBtn),
+    ...(raw.orden?.length ? { orden: raw.orden } : {})
   };
 }
 
@@ -74,7 +75,7 @@ export function cleanData(d: EditorData): SiteData {
     if (u) redes[k] = u;
   });
   const botones = d.botones.map((b): Btn => {
-    const o: Btn = { tipo: b.tipo, texto: trim(b.texto) };
+    const o: Btn = { id: b.id, tipo: b.tipo, texto: trim(b.texto) };
     if (trim(b.subtexto)) o.subtexto = trim(b.subtexto);
     if (b.icono && b.icono !== 'auto') o.icono = b.icono;
     if (b.tipo === 'whatsapp') {
@@ -98,7 +99,8 @@ export function cleanData(d: EditorData): SiteData {
     marca: { nombre: trim(d.marca.nombre), bio: trim(d.marca.bio), logo: d.marca.logo },
     tema: { ...d.tema },
     redes,
-    botones
+    botones,
+    ...(d.orden?.length ? { orden: d.orden } : {})
   };
 }
 

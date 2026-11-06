@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BgImage, Btn, BtnStyle, SiteData, SocialKey } from '../lib/types';
-import { DEFAULT_THEME, hrefFor, iconFor, safeUrl, themeVars } from '../lib/util';
+import { DEFAULT_THEME, hrefFor, iconFor, logoRing, metalButtonBg, safeUrl, themeVars } from '../lib/util';
 import { Icon } from '../lib/icons';
 
 const SOCIAL_ORDER: SocialKey[] = ['instagram', 'facebook', 'tiktok', 'youtube', 'web', 'maps'];
@@ -13,6 +13,8 @@ const SOCIAL_ICON: Record<SocialKey, string> = {
 
 const BTN_BASE =
   'relative flex min-h-[62px] w-full cursor-pointer flex-col items-center justify-center rounded-[var(--radius)] border-2 px-14 py-3 text-center text-base leading-snug font-semibold no-underline transition focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[var(--text)]';
+const BTN_METAL =
+  '!border-[3px] !border-transparent text-[var(--on-primary)] shadow-[0_3px_10px_rgba(0,0,0,.35)] hover:-translate-y-0.5 hover:brightness-110';
 const BTN_STYLE: Record<BtnStyle, string> = {
   solido:
     'border-[var(--primary)] bg-[var(--primary)] text-[var(--on-primary)] hover:-translate-y-0.5 hover:brightness-110',
@@ -72,22 +74,46 @@ function BgLayer({ bg, preview }: { bg: BgImage; preview: boolean }) {
   );
 }
 
+interface Item { key: string; btn: Btn }
+
+/** Todos los botones visibles (propios + redes) en el orden en que se muestran. */
+export function orderedItems(data: SiteData): Item[] {
+  const own: Item[] = data.botones.flatMap((b, idx) => {
+    if (!b.texto?.trim()) return [];
+    return (b.tipo === 'info' ? Boolean(b.contenido) : Boolean(hrefFor(b))) ? [{ key: 'b:' + (b.id ?? idx), btn: b }] : [];
+  });
+  const social: Item[] = SOCIAL_ORDER.flatMap((k) => {
+    const url = safeUrl(data.redes[k]);
+    return url
+      ? [{ key: 'r:' + k, btn: { id: 'red-' + k, tipo: 'link' as const, texto: SOCIAL_LABEL[k], url, icono: SOCIAL_ICON[k] } }]
+      : [];
+  });
+  const all = [...own, ...social];
+  const rank = new Map((data.orden ?? []).map((k, i) => [k, i] as const));
+  // orden estable: los que tienen posición guardada van según ella; el resto conserva su orden y va después
+  return all
+    .map((it, i) => ({ it, i }))
+    .sort((x, y) => {
+      const rx = rank.get(x.it.key), ry = rank.get(y.it.key);
+      if (rx !== undefined && ry !== undefined) return rx - ry;
+      if (rx !== undefined) return -1;
+      if (ry !== undefined) return 1;
+      return x.i - y.i;
+    })
+    .map((x) => x.it);
+}
+
 /** Dibuja una página de links. La usan la página pública y la vista previa del panel. */
-export default function SiteView({ data, preview = false }: { data: SiteData; preview?: boolean }) {
+export default function SiteView({ data, preview = false, onReorder }: {
+  data: SiteData; preview?: boolean;
+  /** Si se pasa, todos los botones se pueden arrastrar; recibe el nuevo orden completo. */
+  onReorder?: (keys: string[]) => void;
+}) {
   const [info, setInfo] = useState<Btn | null>(null);
+  const [drag, setDrag] = useState<{ from: string; over: string | null } | null>(null);
   const t = { ...DEFAULT_THEME, ...data.tema };
   const m = data.marca;
-
-  const main_ = data.botones.filter((b) => {
-    if (!b.texto?.trim()) return false;
-    return b.tipo === 'info' ? Boolean(b.contenido) : Boolean(hrefFor(b));
-  });
-  // Las redes sociales y Google Maps salen como botones al final
-  const socialBtns: Btn[] = SOCIAL_ORDER.flatMap((k) => {
-    const url = safeUrl(data.redes[k]);
-    return url ? [{ id: 'red-' + k, tipo: 'link' as const, texto: SOCIAL_LABEL[k], url, icono: SOCIAL_ICON[k] }] : [];
-  });
-  const visible = [...main_, ...socialBtns];
+  const items = orderedItems(data);
 
   return (
     <div
@@ -96,24 +122,51 @@ export default function SiteView({ data, preview = false }: { data: SiteData; pr
     >
       {t.imagenFondo && <BgLayer bg={t.imagenFondo} preview={preview} />}
       <main className="mx-auto flex max-w-[560px] flex-col items-center px-5 pt-11 pb-16 text-center">
-        {m.logo ? (
-          <img src={m.logo} alt={m.nombre || 'Logo'} className="size-24 rounded-full bg-white object-cover shadow-md" />
-        ) : (
-          m.nombre && (
-            <div className="grid size-24 place-items-center rounded-full bg-[var(--primary)] text-[40px] font-bold text-[var(--on-primary)] shadow-md">
-              {m.nombre.trim().charAt(0).toUpperCase()}
-            </div>
-          )
-        )}
+        {(() => {
+          const ring = logoRing(t);
+          const face = m.logo ? (
+            <img src={m.logo} alt={m.nombre || 'Logo'} className={`size-24 rounded-full bg-white object-cover ${ring ? '' : 'shadow-md'}`} />
+          ) : (
+            m.nombre && (
+              <div className={`grid size-24 place-items-center rounded-full bg-[var(--primary)] text-[40px] font-bold text-[var(--on-primary)] ${ring ? '' : 'shadow-md'}`}>
+                {m.nombre.trim().charAt(0).toUpperCase()}
+              </div>
+            )
+          );
+          return ring && face ? <div className="rounded-full shadow-md" style={ring}>{face}</div> : face;
+        })()}
         {m.nombre && <h1 className="mt-4 mb-1.5 text-[1.65rem] leading-tight font-bold text-[var(--name)] [overflow-wrap:anywhere]">{m.nombre}</h1>}
-        {m.bio && <p className="max-w-[440px] text-[.95rem] leading-relaxed text-[var(--bio)] opacity-90 [overflow-wrap:anywhere]">{m.bio}</p>}
+        {m.bio && <p className={`max-w-[440px] text-[.95rem] leading-relaxed text-[var(--bio)] ${t.negritaDescripcion ? 'font-bold' : ''} opacity-90 [overflow-wrap:anywhere]`}>{m.bio}</p>}
 
         <div className="mt-[26px] flex w-full flex-col gap-3.5">
-          {visible.map((b, i) => {
+          {items.map(({ key, btn: b }, i) => {
             const icon = iconFor(b);
             const sub = b.subtexto || (b.tipo === 'mapa' ? b.direccion : '');
-            const cls = `${BTN_BASE} ${BTN_STYLE[t.estiloBoton]} ${preview ? '' : 'animate-rise motion-reduce:animate-none'}`;
-            const style = { animationDelay: `${i * 60}ms` };
+            const metal = t.acabado === 'oro' || t.acabado === 'plata' ? t.acabado : null;
+            const cls = `${BTN_BASE} ${metal ? BTN_METAL : BTN_STYLE[t.estiloBoton]} ${preview ? '' : 'animate-rise motion-reduce:animate-none'}`;
+            const canDrag = Boolean(onReorder);
+            const dragProps = canDrag ? {
+              draggable: true,
+              onDragStart: (e: React.DragEvent) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', key); setDrag({ from: key, over: null }); },
+              onDragOver: (e: React.DragEvent) => { if (!drag) return; e.preventDefault(); if (drag.over !== key) setDrag({ ...drag, over: key }); },
+              onDrop: (e: React.DragEvent) => {
+                e.preventDefault();
+                if (drag && drag.from !== key) {
+                  const keys = items.map((x) => x.key);
+                  keys.splice(keys.indexOf(drag.from), 1);
+                  keys.splice(keys.indexOf(key), 0, drag.from);
+                  onReorder!(keys);
+                }
+                setDrag(null);
+              },
+              onDragEnd: () => setDrag(null)
+            } : {};
+            const dragStyle = canDrag ? {
+              cursor: 'grab',
+              ...(drag?.from === key ? { opacity: 0.4 } : {}),
+              ...(drag && drag.over === key && drag.from !== key ? { outline: '3px dashed #6366f1', outlineOffset: 4 } : {})
+            } : {};
+            const style = { animationDelay: `${i * 60}ms`, ...dragStyle, ...(metal ? { background: metalButtonBg(metal) } : {}) };
             const inner = (
               <>
                 {icon && <Icon name={icon} className="absolute top-1/2 left-[18px] size-[26px] -translate-y-1/2" />}
@@ -123,7 +176,7 @@ export default function SiteView({ data, preview = false }: { data: SiteData; pr
             );
             if (b.tipo === 'info') {
               return (
-                <button key={b.id ?? i} type="button" className={cls} style={style} onClick={() => setInfo(b)}>
+                <button key={key} type="button" className={cls} style={style} onClick={() => setInfo(b)} {...dragProps}>
                   {inner}
                 </button>
               );
@@ -132,10 +185,11 @@ export default function SiteView({ data, preview = false }: { data: SiteData; pr
             const external = /^https?:/i.test(href);
             return (
               <a
-                key={b.id ?? i}
+                key={key}
                 href={href}
                 className={cls}
                 style={style}
+                {...dragProps}
                 {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               >
                 {inner}

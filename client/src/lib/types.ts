@@ -17,7 +17,15 @@ export interface BgImage {
   y?: number;         // -100 a 100 (% desplazamiento vertical)
 }
 
+export type Metal = 'oro' | 'plata';
+
 export interface Theme {
+  /** Acabado metálico de los botones (borde con brillo). */
+  acabado?: 'ninguno' | Metal;
+  /** Borde del logo: nada, un color liso o un metal. */
+  bordeLogo?: 'ninguno' | 'color' | Metal;
+  colorBordeLogo?: string;
+  grosorBordeLogo?: number; // 1-14 px
   imagenFondo?: BgImage;
   colorPrincipal: string;
   fondo: string;
@@ -26,6 +34,8 @@ export interface Theme {
   colorNombre?: string;
   /** Color de la descripción corta. Vacío = usa el color de texto. */
   colorDescripcion?: string;
+  /** Descripción corta en negrita. */
+  negritaDescripcion?: boolean;
   estiloBoton: BtnStyle;
   forma: Shape;
 }
@@ -52,6 +62,8 @@ export interface SiteData {
   tema: Theme;
   redes: Partial<Record<SocialKey, string>>;
   botones: Btn[];
+  /** Orden de todos los botones (propios y redes): 'b:<id>' o 'r:<red>'. Lo no listado va al final. */
+  orden?: string[];
 }
 
 /** Versión "completa" que se edita en el panel (todos los campos presentes). */

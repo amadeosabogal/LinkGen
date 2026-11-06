@@ -69,6 +69,10 @@ function Panel({ user }: { user: User }) {
     setDirty(true);
   }, []);
 
+  const reorderButtons = useCallback((keys: string[]) => {
+    edit((d) => ({ ...d, data: { ...d.data, orden: keys } }));
+  }, [edit]);
+
   async function copy(text: string) {
     try { await navigator.clipboard.writeText(text); notify('Link copiado'); }
     catch { notify('No pude copiar. Selecciónalo y cópialo a mano.'); }
@@ -244,9 +248,10 @@ function Panel({ user }: { user: User }) {
         >
           <div className="mx-auto h-[min(720px,calc(100vh-112px))] w-full max-w-[360px] overflow-hidden rounded-[38px] border-[10px] border-neutral-900 bg-white shadow-2xl">
             <div className="h-full overflow-y-auto">
-              {preview ? <SiteView data={preview} preview /> : <p className="mt-[40%] text-center text-sm text-slate-400">Vista previa</p>}
+              {preview ? <SiteView data={preview} preview onReorder={reorderButtons} /> : <p className="mt-[40%] text-center text-sm text-slate-400">Vista previa</p>}
             </div>
           </div>
+          <p className="mx-auto mt-2.5 max-w-[360px] text-center text-[12.5px] text-slate-500">Arrastra los botones en la vista previa para cambiar su orden.</p>
         </aside>
       </div>
 

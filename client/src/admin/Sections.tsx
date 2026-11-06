@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { BgImage, BtnStyle, BtnType, Draft, EditorData, FullBtn, Shape } from '../lib/types';
+import type { BgImage, BtnStyle, Theme, BtnType, Draft, EditorData, FullBtn, Shape } from '../lib/types';
 import { Store } from '../lib/store';
 import { linkFor, slugify } from '../lib/util';
 import { emptyBtn, SOCIALS } from './editorState';
@@ -33,6 +33,8 @@ const PALETAS = [
   { n: 'Verde', p: '#2F7D5B', bg: '#EEF6F1', tx: '#14281F' },
   { n: 'Naranja', p: '#E8590C', bg: '#FFF4EC', tx: '#2D1608' },
   { n: 'Dorado sobre negro', p: '#C8A24A', bg: '#121212', tx: '#F2F2F2' },
+  { n: 'Negro y oro (brillante)', p: '#0A0A0A', bg: '#141414', tx: '#F2F2F2', ac: 'oro' as const },
+  { n: 'Negro y plata (brillante)', p: '#0A0A0A', bg: '#141414', tx: '#F2F2F2', ac: 'plata' as const },
   { n: 'Negro', p: '#111111', bg: '#FFFFFF', tx: '#111111' }
 ];
 
@@ -246,6 +248,13 @@ export function SecNegocio({ draft, edit, notify }: SectionProps) {
         value={draft.data.tema.colorNombre} fallback={draft.data.tema.colorPrincipal}
         onChange={(v) => setData((d) => ({ ...d, tema: { ...d.tema, colorNombre: v } }))}
       />
+      <label className="mb-3.5 flex items-center gap-2 text-[13.5px]">
+        <input
+          type="checkbox" checked={Boolean(draft.data.tema.negritaDescripcion)} className="size-4 accent-indigo-600"
+          onChange={(e) => setData((d) => ({ ...d, tema: { ...d.tema, negritaDescripcion: e.target.checked } }))}
+        />
+        <span className="font-semibold">Descripción en negrita</span>
+      </label>
       <OptionalColor
         label="Color de la descripción" hint="Si no eliges uno, usa el color de texto del diseño."
         value={draft.data.tema.colorDescripcion} fallback={draft.data.tema.texto}
@@ -282,7 +291,13 @@ function BtnCard({ b, i, total, setData }: { b: FullBtn; i: number; total: numbe
       if (j < 0 || j >= d.botones.length) return d;
       const arr = [...d.botones];
       [arr[i], arr[j]] = [arr[j], arr[i]];
-      return { ...d, botones: arr };
+      let orden = d.orden;
+      if (orden?.length) {
+        const ka = 'b:' + arr[i].id, kb = 'b:' + arr[j].id;
+        const pa = orden.indexOf(ka), pb = orden.indexOf(kb);
+        if (pa >= 0 && pb >= 0) { orden = [...orden]; [orden[pa], orden[pb]] = [orden[pb], orden[pa]]; }
+      }
+      return { ...d, botones: arr, ...(orden ? { orden } : {}) };
     });
   const del = () => setData((d) => ({ ...d, botones: d.botones.filter((x) => x.id !== b.id) }));
 
@@ -384,7 +399,7 @@ export function SecDiseno({ draft, edit, notify }: SectionProps) {
           {PALETAS.map((p) => (
             <button
               key={p.n} type="button" title={p.n} aria-label={`Paleta ${p.n}`}
-              onClick={() => setTema({ colorPrincipal: p.p, fondo: p.bg, texto: p.tx })}
+              onClick={() => setTema({ colorPrincipal: p.p, fondo: p.bg, texto: p.tx, ...('ac' in p ? { acabado: p.ac, bordeLogo: p.ac } : {}) })}
               style={{ background: `linear-gradient(135deg, ${p.p} 50%, ${p.bg} 50%)` }}
               className="size-10 rounded-full border-2 border-white shadow-[0_0_0_1px_#c4c9d2] transition hover:scale-110"
             />
@@ -397,6 +412,22 @@ export function SecDiseno({ draft, edit, notify }: SectionProps) {
         <ColorField label="Texto" value={t.texto} onChange={(v) => setTema({ texto: v })} />
       </div>
       <BgImageField value={t.imagenFondo} onChange={(v) => setTema({ imagenFondo: v })} notify={notify} />
+      <Seg<NonNullable<Theme['acabado']>>
+        label="Acabado metálico de botones" value={t.acabado ?? 'ninguno'} onChange={(v) => setTema({ acabado: v })}
+        options={[['ninguno', 'Ninguno'], ['oro', 'Dorado'], ['plata', 'Plateado']]}
+      />
+      <Seg<NonNullable<Theme['bordeLogo']>>
+        label="Borde del logo" value={t.bordeLogo ?? 'ninguno'} onChange={(v) => setTema({ bordeLogo: v })}
+        options={[['ninguno', 'Sin borde'], ['color', 'Color'], ['oro', 'Dorado'], ['plata', 'Plateado']]}
+      />
+      {(t.bordeLogo ?? 'ninguno') !== 'ninguno' && (
+        <div className="mb-3.5">
+          <Slider label="Grosor del borde" value={t.grosorBordeLogo ?? 4} min={1} max={14} unit="px" onChange={(v) => setTema({ grosorBordeLogo: v })} />
+          {t.bordeLogo === 'color' && (
+            <ColorField label="Color del borde" value={t.colorBordeLogo || t.colorPrincipal} onChange={(v) => setTema({ colorBordeLogo: v })} />
+          )}
+        </div>
+      )}
       <Seg<BtnStyle>
         label="Estilo de botones" value={t.estiloBoton} onChange={(v) => setTema({ estiloBoton: v })}
         options={[['solido', 'Sólido'], ['sombra', 'Con sombra'], ['borde', 'Solo borde']]}
