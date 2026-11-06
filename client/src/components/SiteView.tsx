@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Btn, BtnStyle, SiteData, SocialKey } from '../lib/types';
+import type { BgImage, Btn, BtnStyle, SiteData, SocialKey } from '../lib/types';
 import { DEFAULT_THEME, hrefFor, iconFor, safeUrl, themeVars } from '../lib/util';
 import { Icon } from '../lib/icons';
 
@@ -48,6 +48,30 @@ function InfoDialog({ b, onClose }: { b: Btn; onClose: () => void }) {
   );
 }
 
+const SAFE_IMG = /^data:image\/[\w+.-]+;base64,[A-Za-z0-9+/=]+$/;
+
+/** Imagen de fondo con sus ajustes. Va detrás de todo el contenido. */
+function BgLayer({ bg, preview }: { bg: BgImage; preview: boolean }) {
+  if (!SAFE_IMG.test(bg.src)) return null;
+  const clamp = (n: number, a: number, b: number) => Math.min(b, Math.max(a, Number(n) || 0));
+  const blur = clamp(bg.desenfoque, 0, 20);
+  return (
+    <div
+      aria-hidden
+      className={`${bg.fijo && !preview ? 'fixed' : 'absolute'} inset-0 -z-10 pointer-events-none`}
+      style={{
+        backgroundImage: `url("${bg.src}")`,
+        backgroundSize: { cubrir: 'cover', ancho: '100% auto', mosaico: 'auto' }[bg.ajuste] ?? 'cover',
+        backgroundPosition: { arriba: 'center top', centro: 'center', abajo: 'center bottom' }[bg.posicion] ?? 'center',
+        backgroundRepeat: bg.ajuste === 'mosaico' ? 'repeat' : 'no-repeat',
+        opacity: clamp(bg.opacidad, 0, 100) / 100,
+        filter: `blur(${blur}px) brightness(${clamp(bg.brillo, 40, 160)}%)`,
+        transform: blur > 0 ? 'scale(1.1)' : undefined
+      }}
+    />
+  );
+}
+
 /** Dibuja una página de links. La usan la página pública y la vista previa del panel. */
 export default function SiteView({ data, preview = false }: { data: SiteData; preview?: boolean }) {
   const [info, setInfo] = useState<Btn | null>(null);
@@ -68,8 +92,9 @@ export default function SiteView({ data, preview = false }: { data: SiteData; pr
   return (
     <div
       style={themeVars(t)}
-      className="min-h-full bg-[var(--bg)] font-sans text-[var(--text)]"
+      className="relative isolate min-h-full overflow-hidden bg-[var(--bg)] font-sans text-[var(--text)]"
     >
+      {t.imagenFondo && <BgLayer bg={t.imagenFondo} preview={preview} />}
       <main className="mx-auto flex max-w-[560px] flex-col items-center px-5 pt-11 pb-16 text-center">
         {m.logo ? (
           <img src={m.logo} alt={m.nombre || 'Logo'} className="size-24 rounded-full bg-white object-cover shadow-md" />
@@ -81,7 +106,7 @@ export default function SiteView({ data, preview = false }: { data: SiteData; pr
           )
         )}
         {m.nombre && <h1 className="mt-4 mb-1.5 text-[1.65rem] leading-tight font-bold text-[var(--name)] [overflow-wrap:anywhere]">{m.nombre}</h1>}
-        {m.bio && <p className="max-w-[440px] text-[.95rem] leading-relaxed opacity-90 [overflow-wrap:anywhere]">{m.bio}</p>}
+        {m.bio && <p className="max-w-[440px] text-[.95rem] leading-relaxed text-[var(--bio)] opacity-90 [overflow-wrap:anywhere]">{m.bio}</p>}
 
         <div className="mt-[26px] flex w-full flex-col gap-3.5">
           {visible.map((b, i) => {

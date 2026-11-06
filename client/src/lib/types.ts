@@ -3,10 +3,24 @@ export type SocialKey = 'instagram' | 'facebook' | 'tiktok' | 'youtube' | 'web' 
 export type BtnStyle = 'solido' | 'sombra' | 'borde';
 export type Shape = 'redondeado' | 'pill' | 'recto';
 
+export interface BgImage {
+  /** Imagen en formato data:image/...;base64 */
+  src: string;
+  opacidad: number;   // 0-100
+  desenfoque: number; // 0-20 (px)
+  brillo: number;     // 40-160 (%)
+  ajuste: 'cubrir' | 'ancho' | 'mosaico';
+  posicion: 'arriba' | 'centro' | 'abajo';
+  fijo: boolean;
+}
+
 export interface Theme {
+  imagenFondo?: BgImage;
   colorPrincipal: string;
   fondo: string;
   texto: string;
+  /** Color de la descripción corta. Vacío = usa el color de texto. */
+  colorDescripcion?: string;
   estiloBoton: BtnStyle;
   forma: Shape;
 }

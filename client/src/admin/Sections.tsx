@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { BtnStyle, BtnType, Draft, EditorData, FullBtn, Shape } from '../lib/types';
+import type { BgImage, BtnStyle, BtnType, Draft, EditorData, FullBtn, Shape } from '../lib/types';
 import { Store } from '../lib/store';
 import { linkFor, slugify } from '../lib/util';
 import { emptyBtn, SOCIALS } from './editorState';
@@ -55,6 +55,93 @@ function resizeImage(file: File, size: number): Promise<string> {
     img.onerror = () => fail(new Error('imagen no válida'));
     img.src = url;
   });
+}
+
+/** Reduce la imagen (lado mayor = max) conservando su proporción. */
+function resizeKeepRatio(file: File, max: number): Promise<string> {
+  return new Promise((ok, fail) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k);
+      c.height = Math.round(img.height * k);
+      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      ok(c.toDataURL('image/webp', 0.8));
+    };
+    img.onerror = () => fail(new Error('imagen no válida'));
+    img.src = url;
+  });
+}
+
+function Slider({ label, value, min, max, unit, onChange }: {
+  label: string; value: number; min: number; max: number; unit: string; onChange: (v: number) => void;
+}) {
+  return (
+    <label className="mb-3.5 grid gap-1">
+      <span className="flex justify-between text-[13px] font-semibold">
+        {label}<span className="font-mono font-normal text-slate-500">{value}{unit}</span>
+      </span>
+      <input type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-indigo-600" />
+    </label>
+  );
+}
+
+function BgImageField({ value, onChange, notify }: {
+  value: BgImage | undefined; onChange: (v: BgImage | undefined) => void; notify: (m: string) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const set = (patch: Partial<BgImage>) => value && onChange({ ...value, ...patch });
+  return (
+    <FieldBox label="Imagen de fondo" hint="Se coloca detrás de los botones. Usa una imagen que no distraiga.">
+      <div className="flex items-center gap-3.5">
+        <div
+          className="size-[72px] rounded-[10px] border border-dashed border-slate-400 bg-slate-50 bg-cover bg-center"
+          style={value ? { backgroundImage: `url("${value.src}")` } : undefined}
+        />
+        <button type="button" className={btnGhost} onClick={() => ref.current?.click()}>
+          {value ? 'Cambiar imagen' : 'Subir imagen'}
+        </button>
+        {value && <button type="button" className={btnGhost} onClick={() => onChange(undefined)}>Quitar</button>}
+        <input
+          ref={ref} type="file" accept="image/*" hidden
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (!f) return;
+            try {
+              const src = await resizeKeepRatio(f, 1400);
+              onChange({
+                opacidad: 100, desenfoque: 0, brillo: 100, ajuste: 'cubrir', posicion: 'centro', fijo: true,
+                ...value, src
+              });
+            } catch { notify('No pude leer esa imagen'); }
+          }}
+        />
+      </div>
+      {value && (
+        <div className="mt-3">
+          <Slider label="Opacidad" value={value.opacidad} min={0} max={100} unit="%" onChange={(v) => set({ opacidad: v })} />
+          <Slider label="Desenfoque" value={value.desenfoque} min={0} max={20} unit="px" onChange={(v) => set({ desenfoque: v })} />
+          <Slider label="Brillo" value={value.brillo} min={40} max={160} unit="%" onChange={(v) => set({ brillo: v })} />
+          <Seg<BgImage['ajuste']>
+            label="Ajuste" value={value.ajuste} onChange={(v) => set({ ajuste: v })}
+            options={[['cubrir', 'Cubrir'], ['ancho', 'Ancho completo'], ['mosaico', 'Mosaico']]}
+          />
+          <Seg<BgImage['posicion']>
+            label="Posición" value={value.posicion} onChange={(v) => set({ posicion: v })}
+            options={[['arriba', 'Arriba'], ['centro', 'Centro'], ['abajo', 'Abajo']]}
+          />
+          <label className="flex items-center gap-2 text-[13.5px]">
+            <input type="checkbox" checked={value.fijo} onChange={(e) => set({ fijo: e.target.checked })} className="size-4 accent-indigo-600" />
+            Fija: no se mueve al hacer scroll
+          </label>
+        </div>
+      )}
+    </FieldBox>
+  );
 }
 
 function LogoField({ logo, onChange, notify }: { logo: string; onChange: (v: string) => void; notify: (m: string) => void }) {
@@ -131,6 +218,25 @@ export function SecNegocio({ draft, edit, notify }: SectionProps) {
         label="Descripción corta" value={m.bio} max={120} placeholder="Ej: Spa de belleza y bienestar 🌿"
         onChange={(v) => setData((d) => ({ ...d, marca: { ...d.marca, bio: v } }))}
       />
+      <FieldBox label="Color de la descripción" hint="Si no eliges uno, usa el color de texto del diseño.">
+        <div className="flex items-center gap-2.5">
+          <input
+            type="color" aria-label="Color de la descripción"
+            value={draft.data.tema.colorDescripcion || draft.data.tema.texto}
+            onChange={(e) => setData((d) => ({ ...d, tema: { ...d.tema, colorDescripcion: e.target.value } }))}
+            className="h-[38px] w-11 rounded-lg border border-slate-300 bg-white p-0.5"
+          />
+          <code className="font-mono text-[12.5px]">{draft.data.tema.colorDescripcion || 'Automático'}</code>
+          {draft.data.tema.colorDescripcion && (
+            <button
+              type="button" className={btnGhost}
+              onClick={() => setData((d) => ({ ...d, tema: { ...d.tema, colorDescripcion: '' } }))}
+            >
+              Restablecer
+            </button>
+          )}
+        </div>
+      </FieldBox>
       <LogoField logo={m.logo} notify={notify} onChange={(v) => setData((d) => ({ ...d, marca: { ...d.marca, logo: v } }))} />
       <SlugField draft={draft} edit={edit} />
     </Card>
@@ -253,7 +359,7 @@ export function SecBotones({ draft, edit }: SectionProps) {
   );
 }
 
-export function SecDiseno({ draft, edit }: SectionProps) {
+export function SecDiseno({ draft, edit, notify }: SectionProps) {
   const setData = useSetData(edit);
   const t = draft.data.tema;
   const setTema = (patch: Partial<typeof t>) => setData((d) => ({ ...d, tema: { ...d.tema, ...patch } }));
@@ -276,6 +382,7 @@ export function SecDiseno({ draft, edit }: SectionProps) {
         <ColorField label="Fondo" value={t.fondo} onChange={(v) => setTema({ fondo: v })} />
         <ColorField label="Texto" value={t.texto} onChange={(v) => setTema({ texto: v })} />
       </div>
+      <BgImageField value={t.imagenFondo} onChange={(v) => setTema({ imagenFondo: v })} notify={notify} />
       <Seg<BtnStyle>
         label="Estilo de botones" value={t.estiloBoton} onChange={(v) => setTema({ estiloBoton: v })}
         options={[['solido', 'Sólido'], ['sombra', 'Con sombra'], ['borde', 'Solo borde']]}
