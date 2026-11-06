@@ -130,6 +130,12 @@ function BgImageField({ value, onChange, notify }: {
             label="Ajuste" value={value.ajuste} onChange={(v) => set({ ajuste: v })}
             options={[['cubrir', 'Cubrir'], ['ancho', 'Ancho completo'], ['mosaico', 'Mosaico']]}
           />
+          <Slider label="Tamaño (zoom)" value={value.zoom ?? 100} min={50} max={300} unit="%" onChange={(v) => set({ zoom: v })} />
+          <Slider label="Mover horizontal" value={value.x ?? 0} min={-100} max={100} unit="%" onChange={(v) => set({ x: v })} />
+          <Slider label="Mover vertical" value={value.y ?? 0} min={-100} max={100} unit="%" onChange={(v) => set({ y: v })} />
+          <button type="button" className={`${btnGhost} mb-3.5`} onClick={() => set({ zoom: 100, x: 0, y: 0 })}>
+            Reiniciar tamaño y posición
+          </button>
           <Seg<BgImage['posicion']>
             label="Posición" value={value.posicion} onChange={(v) => set({ posicion: v })}
             options={[['arriba', 'Arriba'], ['centro', 'Centro'], ['abajo', 'Abajo']]}

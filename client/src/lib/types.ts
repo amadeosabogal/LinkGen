@@ -12,6 +12,9 @@ export interface BgImage {
   ajuste: 'cubrir' | 'ancho' | 'mosaico';
   posicion: 'arriba' | 'centro' | 'abajo';
   fijo: boolean;
+  zoom?: number;      // 50-300 (%), 100 = normal
+  x?: number;         // -100 a 100 (% desplazamiento horizontal)
+  y?: number;         // -100 a 100 (% desplazamiento vertical)
 }
 
 export interface Theme {

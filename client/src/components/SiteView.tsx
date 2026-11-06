@@ -66,7 +66,7 @@ function BgLayer({ bg, preview }: { bg: BgImage; preview: boolean }) {
         backgroundRepeat: bg.ajuste === 'mosaico' ? 'repeat' : 'no-repeat',
         opacity: clamp(bg.opacidad, 0, 100) / 100,
         filter: `blur(${blur}px) brightness(${clamp(bg.brillo, 40, 160)}%)`,
-        transform: blur > 0 ? 'scale(1.1)' : undefined
+        transform: `translate(${clamp(bg.x ?? 0, -100, 100)}%, ${clamp(bg.y ?? 0, -100, 100)}%) scale(${(bg.zoom ? clamp(bg.zoom, 50, 300) : 100) / 100 * (blur > 0 ? 1.1 : 1)})`
       }}
     />
   );
