@@ -1,6 +1,6 @@
 // Capa de datos con dos modos y la misma interfaz:
 //  · local → localStorage (para probar sin servidor)
-//  · api   → tu API (carpeta server/) conectada a SQL Server; lo que publicas lo ve todo el mundo
+//  · api   → tu API (carpeta service/) conectada a SQL Server; lo que publicas lo ve todo el mundo
 import type { Row, SiteData } from './types';
 
 const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').trim().replace(/\/+$/, '');

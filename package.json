@@ -2,28 +2,10 @@
   "name": "linkgen",
   "private": true,
   "version": "2.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "deploy": "npm run build && npx wrangler@4 deploy",
-    "server": "npm --prefix server run dev"
-  },
-  "dependencies": {
-    "@fontsource-variable/archivo": "^5.1.0",
-    "qrcode": "^1.5.4",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@tailwindcss/vite": "4.1.11",
-    "@types/qrcode": "^1.5.5",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
-    "tailwindcss": "4.1.11",
-    "typescript": "^5.6.3",
-    "vite": "^6.0.0"
+    "install:all": "npm --prefix client install && npm --prefix service install",
+    "dev:client": "npm --prefix client run dev",
+    "dev:service": "npm --prefix service run dev",
+    "build": "npm --prefix client run build"
   }
 }
