@@ -60,7 +60,7 @@ function BgLayer({ bg, preview }: { bg: BgImage; preview: boolean }) {
   return (
     <div
       aria-hidden
-      className={`${bg.fijo && !preview ? 'fixed' : 'absolute'} inset-0 -z-10 pointer-events-none`}
+      className={`${bg.fijo && !preview ? 'fixed' : 'absolute'} inset-x-0 -z-10 pointer-events-none ${bg.fijo && !preview ? '-top-24 -bottom-24' : 'inset-y-0'}`}
       style={{
         backgroundImage: `url("${bg.src}")`,
         backgroundSize: { cubrir: 'cover', ancho: '100% auto', mosaico: 'auto' }[bg.ajuste] ?? 'cover',
@@ -114,6 +114,19 @@ export default function SiteView({ data, preview = false, onReorder }: {
   const t = { ...DEFAULT_THEME, ...data.tema };
   const m = data.marca;
   const items = orderedItems(data);
+
+  // En el celular, pinta del color del fondo las barras del navegador y la zona de rebote al hacer scroll
+  const pageBg = (themeVars(t) as Record<string, string>)['--bg'];
+  useEffect(() => {
+    if (preview) return;
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta); }
+    const prevMeta = meta.content, prevBg = document.documentElement.style.backgroundColor;
+    meta.content = pageBg;
+    document.documentElement.style.backgroundColor = pageBg;
+    document.body.style.backgroundColor = pageBg;
+    return () => { meta!.content = prevMeta; document.documentElement.style.backgroundColor = prevBg; document.body.style.backgroundColor = ''; };
+  }, [pageBg, preview]);
 
   return (
     <div
